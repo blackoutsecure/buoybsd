@@ -1,0 +1,97 @@
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package buoybsd.v1beta1;
+
+option go_package = "github.com/blackoutsecure/int-buoybsd/api/v1beta1;v1beta1";
+
+import "google/protobuf/timestamp.proto";
+
+enum EventId {
+  EVENT_ID_UNSPECIFIED = 0;
+  EVENT_ID_PROCESS_EXEC = 1000001;
+}
+
+message Event {
+  google.protobuf.Timestamp timestamp = 1;
+  EventId id = 2;
+  string name = 3;
+  string schema_version = 4;
+  string record_id = 5;
+  Source source = 6;
+  Host host = 7;
+  Process process = 8;
+  repeated string matched_policies = 9;
+  repeated Detection detections = 10;
+  repeated DataWarning warnings = 11;
+  RawRecord raw_record = 12;
+  Jail jail = 13;
+
+  oneof data {
+    ProcessExec process_exec = 20;
+  }
+}
+
+message Source {
+  string collector = 1;
+  string operating_system = 2;
+  string evidence = 3;
+  optional string source_id = 4;
+  uint64 replay_sequence = 5;
+}
+
+message Host {
+  optional string name = 1;
+}
+
+message Process {
+  optional uint32 pid = 1;
+  optional uint32 tid = 2;
+  optional uint32 parent_pid = 3;
+  optional uint32 uid = 4;
+  optional uint32 euid = 5;
+  optional uint32 gid = 6;
+  optional uint32 egid = 7;
+  optional string executable_path = 8;
+  optional string command = 9;
+  repeated Process ancestors = 10;
+  optional bool ancestry_complete = 11;
+}
+
+message Jail {
+  optional uint32 id = 1;
+  optional string name = 2;
+}
+
+message ProcessExec {
+  repeated string argv = 1;
+  optional bool argv_complete = 2;
+  optional bool success = 3;
+}
+
+message RawRecord {
+  string media_type = 1;
+  bytes data = 2;
+}
+
+message DataWarning {
+  string field = 1;
+  string reason = 2;
+}
+
+message EventReference {
+  EventId id = 1;
+  string name = 2;
+  string record_id = 3;
+}
+
+message Detection {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string severity = 4;
+  repeated string tags = 5;
+  repeated string mitre_techniques = 6;
+  EventReference detected_from = 7;
+}

@@ -1,0 +1,8 @@
+/bin/
+/.tools/
+*.test
+*.out
+coverage.*
+events.ndjson
+.DS_Store
+Thumbs.db

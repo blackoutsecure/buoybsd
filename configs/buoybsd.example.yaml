@@ -1,0 +1,37 @@
+version: 1
+
+collector:
+  type: replay
+  path: tests/fixtures/process_exec.synthetic.ndjson
+  max_record_bytes: 65536
+
+pipeline:
+  queue_size: 64
+
+policies:
+  - name: all-process-exec
+    event_names: [process_exec]
+    collectors: [replay]
+
+detectors: [shell-exec]
+
+outputs:
+  - name: stdout-json
+    type: stdout
+    format: json
+
+# Optional outputs: remove the "# " prefix to add them to the list.
+# Protect file directories/retention, and never commit real credentials.
+#   - name: file-json
+#     type: file
+#     format: json
+#     path: events.ndjson
+#
+#   - name: webhook-json
+#     type: webhook
+#     format: json
+#     url: https://receiver.example.invalid/events
+#     timeout: 5s
+#     retries: 2
+#     headers:
+#       X-Source: buoybsd

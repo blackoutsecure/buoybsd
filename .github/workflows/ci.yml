@@ -1,0 +1,80 @@
+name: BuoyBSD validation
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOTOOLCHAIN: local
+
+jobs:
+  go:
+    name: Go unit, replay, race, and static checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go mod download
+      - name: Verify formatting
+        run: go run ./tools/dev checkfmt
+      - run: go vet ./...
+      - run: go tool staticcheck ./...
+      - name: Unit tests
+        run: go test -timeout 120s -count=1 ./...
+      - name: Linux race tests
+        run: go test -race -timeout 120s -count=1 ./...
+      - name: Replay integration, not native FreeBSD telemetry
+        run: go test -tags=integration -timeout 120s -count=1 ./tests/integration/...
+      - name: Original and dependency license notices
+        run: go run ./tools/dev license
+      - run: go run ./tools/dev build
+
+  protobuf:
+    name: Reproducible protobuf generation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install checksum-verified protoc 36.2 without elevation
+        shell: bash
+        run: |
+          set -euo pipefail
+          directory="$(mktemp -d "${RUNNER_TEMP}/buoybsd-protoc.XXXXXX")"
+          curl --fail --location --connect-timeout 15 --max-time 120 \
+            https://github.com/protocolbuffers/protobuf/releases/download/v36.2/protoc-36.2-linux-x86_64.zip \
+            --output "${directory}/protoc.zip"
+          printf '%s  %s\n' \
+            '121f6c7afe1d4d0e3ea6aab9432038599250134cbf4474cb1167d2c7decd4278' \
+            "${directory}/protoc.zip" | sha256sum --check -
+          unzip -q "${directory}/protoc.zip" -d "${directory}"
+          echo "${directory}/bin" >> "${GITHUB_PATH}"
+      - run: go run ./tools/dev check-generated
+
+  freebsd-compile:
+    name: FreeBSD compilation only (amd64 and arm64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go run ./tools/dev build-freebsd

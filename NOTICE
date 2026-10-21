@@ -1,0 +1,14 @@
+BuoyBSD
+Copyright 2026 BlackoutSecure contributors.
+
+Original BuoyBSD code is licensed under the Apache License, Version 2.0.
+
+BuoyBSD is independently implemented. Aqua Security Tracee is an
+architectural and interoperability reference. No endorsement,
+affiliation, or demonstrated Tracee wire compatibility is implied.
+No Tracee implementation code is included in this bootstrap.
+
+Runtime dependency and Go standard-library license notices are preserved
+in licenses/protobuf.txt, licenses/yaml.txt, and licenses/go.txt.
+Include this NOTICE, LICENSE, and the licenses directory with binary
+distributions. See docs/provenance.md for versions and source references.

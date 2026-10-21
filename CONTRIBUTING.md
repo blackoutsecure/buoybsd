@@ -53,6 +53,8 @@ Use the smallest tests covering your change, then the relevant
 cross-cutting checks above. CI runs formatting, vet, Staticcheck, unit
 tests, Linux race tests, replay integration, protobuf consistency,
 license checks, and **compilation only** for FreeBSD amd64/arm64.
+CI checkouts do not persist repository credentials: these validation
+jobs run contributed code and never need to push changes.
 
 Tests should cover missing optional fields, malformed/oversized input,
 unknown/duplicate keys, invalid UTF-8, real zero credentials, policy

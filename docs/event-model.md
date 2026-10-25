@@ -102,9 +102,12 @@ including UID/GID/jail ID 0. All matching names are retained.
 Implemented selectors: `event_names`, `collectors`, `executables`,
 `uids`, `gids`, `jail_ids`, and `process_names`.
 UID/GID selectors use **real**, not effective, IDs. Executables and
-process names use Go `path.Match`: full, case-sensitive matching;
+process names retain the Go `path.Match` contract, implemented in pure
+Rust: full, case-sensitive matching;
 `*` does not cross `/`, and `**` has no recursive-directory semantics.
 An exact string without metacharacters is an exact match.
+`?`, bracket classes/ranges with optional `^` negation, and backslash
+escapes retain their previous semantics; `!` is not class negation.
 
 Network/severity selectors and compound expression languages are not
 implemented. Unknown YAML fields fail instead of doing nothing.
@@ -121,6 +124,8 @@ Final structured stderr diagnostics contain: `events_received`,
 `events_normalized`, `events_filtered`, `detections_generated`,
 `events_delivered`, `events_dropped`, `parser_errors`,
 `destination_errors`, and `collector_restarts`.
+`delivery_attempts` counts individual destination attempts, including
+webhook retries.
 Received counts nonempty/invalid input records attempted, including a
 failing record. Delivered means accepted by **every** configured
 destination, not durable remote storage. Drops include cancellation,

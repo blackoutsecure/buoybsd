@@ -1,44 +1,49 @@
-GO ?= go
+CARGO ?= cargo
 
-.PHONY: all build test test-unit test-integration test-race lint fmt generate check-generated license build-freebsd clean
+.PHONY: all build test test-unit test-integration test-concurrency lint fmt generate check-generated notices license build-freebsd clean
 
 all: build
 
 build:
-	$(GO) run ./tools/dev build
+	$(CARGO) build --locked --bin buoybsd --bin buoyctl
 
 test:
-	$(GO) test -timeout 120s ./...
+	$(CARGO) test --locked --all-targets --all-features
+	$(CARGO) test --locked --doc --all-features
 
 test-unit:
-	$(GO) test -timeout 120s ./internal/... ./pkg/...
+	$(CARGO) test --locked --all-features --lib --test domain --test config --test replay --test output --test pipeline --test webhook
 
 test-integration:
-	$(GO) test -timeout 120s -tags=integration ./tests/integration/...
+	$(CARGO) test --locked --test integration --test cli --test commands
 
-test-race:
-	$(GO) test -timeout 120s -race ./...
+test-concurrency:
+	$(CARGO) test --locked --test pipeline --test replay --test webhook
 
 lint:
-	$(GO) run ./tools/dev checkfmt
-	$(GO) vet ./...
-	$(GO) tool staticcheck ./...
-	$(GO) run ./tools/dev license
+	$(CARGO) fmt --all -- --check
+	$(CARGO) clippy --locked --all-targets --all-features -- -D warnings
+	$(CARGO) run --locked --features tooling --bin buoy-dev -- license
 
 fmt:
-	$(GO) run ./tools/dev fmt
+	$(CARGO) fmt --all
 
 generate:
-	$(GO) run ./tools/dev generate
+	$(CARGO) run --locked --features tooling --bin buoy-dev -- generate
 
 check-generated:
-	$(GO) run ./tools/dev check-generated
+	$(CARGO) run --locked --features tooling --bin buoy-dev -- check-generated
+
+notices:
+	$(CARGO) run --locked --features tooling --bin buoy-dev -- notices
 
 license:
-	$(GO) run ./tools/dev license
+	$(CARGO) run --locked --features tooling --bin buoy-dev -- license
 
 build-freebsd:
-	$(GO) run ./tools/dev build-freebsd
+	$(CARGO) build --locked --target x86_64-unknown-freebsd --bin buoybsd --bin buoyctl
+	$(CARGO) build --locked --target aarch64-unknown-freebsd --bin buoybsd --bin buoyctl
 
 clean:
-	$(GO) run ./tools/dev clean
+	$(CARGO) run --locked --features tooling --bin buoy-dev -- clean
+	$(CARGO) clean --target-dir target

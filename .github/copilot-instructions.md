@@ -16,17 +16,28 @@ process-execution vertical slice before expanding.
 
 ## Language and architecture
 
-- Use Go for commands, API integration, collectors, normalization,
-  enrichment, policies, detection, routing, outputs, and tests.
+- Use Rust for implemented commands, API integration, collectors,
+  normalization, policies, detection, routing, outputs, and tests.
+  Keep this a small Cargo package rather than an unused workspace.
+- Keep domain code pure Rust: the standard library, with only narrow
+  Serde/thiserror support as needed. No Tokio, protobuf runtime,
+  UI/HTTP/database/OS implementation belongs in the domain.
+- Use Clap CLIs, typed Serde configuration/JSON, and Tracing diagnostics
+  separate from event stdout. Use anyhow at executable boundaries and
+  thiserror for reusable errors. Tokio is justified here for bounded
+  replay orchestration, cancellation/signals, and Reqwest webhooks.
+  Do not add Axum or SQLx without a real server or database requirement.
 - Use FreeBSD-native acquisition. Investigate auditpipe, DTrace,
   kqueue, devd, sysctl, socket/routing interfaces, pf, jails, and
   Capsicum only where a concrete telemetry requirement justifies them.
-- Use C/cgo only when a safe, maintainable Go interface is not practical.
-  Isolate it behind a small Go interface and document why it is needed.
+- Use native FFI only for a concrete ABI requirement behind a small Rust
+  boundary, with a documented safety/ownership argument. Existing OS
+  calls close owned file handles; they are not native telemetry.
+  System TLS libraries remain outside domain code.
 - Keep acquisition separate from normalization, enrichment, filtering,
   detection, routing, and serialization. Do not put detections inside
   collectors or native backend details inside the pipeline.
-- Native implementations need `//go:build freebsd`. Other platforms
+- Native implementations need `#[cfg(target_os = "freebsd")]`. Other platforms
   use replay/test doubles; never pretend a stub is a live sensor.
 - Do not import libbpf, Linux eBPF, BTF/CO-RE, cgroups, namespaces, LSM,
   Linux syscall numbers, Kubernetes context, or `/proc` assumptions.
@@ -89,13 +100,13 @@ developer's unrelated host.
 - Start with exact matching and documented full-path globs. Within one
   policy, selectors are ANDed; values and policies are ORed. Missing
   observed fields never satisfy a numeric/path selector.
-- Use small native Go detectors first, declaring stable ID, name,
+- Use small pure-Rust detectors first, declaring stable ID, name,
   description, selectors, severity, tags, required fields, and an
   evaluation function. Detection annotations retain source references.
   Do not call ordinary shell execution proof of a threat.
 - Separate formats from delivery. Initial output order is JSON stdout,
-  JSON file, escaped table, webhook, then (only after evidence) Go
-  templates, Fluent Forward, and gRPC.
+  JSON file, escaped table, webhook, then (only after evidence)
+  template compatibility, Fluent Forward, and gRPC.
 - Start with one default stream. Multiple streams and severity/network
   selectors are future work until relevant event types exist.
 - Separate diagnostic logs from event output. JSON field semantics
@@ -127,22 +138,25 @@ FreeBSD documentation rather than guessing from Linux.
 ## Build, tests, and documentation
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for exact commands and pinned
-tool versions. Keep Make and direct Go commands consistent.
+tool versions. Keep Make and direct Cargo commands consistent.
 
-- Add table-driven tests for parsing, normalization, missing fields,
+- Add table-driven Rust tests for parsing, normalization, missing fields,
   policy matching, detectors, JSON, failures, saturation, cancellation,
   and configuration validation.
 - Add replay integration coverage for every supported vertical slice.
-  FreeBSD runtime tests require build tags and an explicit opt-in when
+  FreeBSD runtime tests require target `cfg` and an explicit opt-in when
   privileged. A skip or cross-build is never a passed native test.
 - Maintain architecture, event model, telemetry feasibility,
   compatibility, limitations, security model, and provenance documents.
   Keep README, CONTRIBUTING, SECURITY, NOTICE, and configuration current.
 - Generated protobuf code must be reproducible using the recorded
   command/tool versions. Run generation consistency checks.
-- CI must distinguish formatting/static analysis, unit/race tests,
+- CI must distinguish rustfmt/strict Clippy, unit/concurrency tests,
   replay integration, FreeBSD compilation, and native privileged tests.
   Pin remote step actions to full SHAs with version comments.
+- Stable concurrency regressions are not ThreadSanitizer evidence.
+  Preserve the synthetic JSON golden and protobuf presence/number tests;
+  do not introduce a Go fallback or relabel fixtures as native captures.
 
 ## Licensing and upstream research
 

@@ -23,7 +23,7 @@ and loss measurements, not because a documentation table looks complete.
 
 Use a disposable VM running a release currently supported by the
 [FreeBSD Security Team](https://www.freebsd.org/security/#sup).
-Record the exact release, architecture, kernel configuration, Go
+Record the exact release, architecture, kernel configuration, Rust
 version, probe listing, and privilege requirements. No release is
 runtime-certified by this repository yet.
 

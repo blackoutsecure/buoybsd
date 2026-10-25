@@ -14,53 +14,51 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GOTOOLCHAIN: local
+  CARGO_TERM_COLOR: always
 
 jobs:
-  go:
-    name: Go unit, replay, race, and static checks
+  rust:
+    name: Rust formatting, Clippy, unit, concurrency, and replay checks
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-      - run: go mod download
-      - name: Verify formatting
-        run: go run ./tools/dev checkfmt
-      - run: go vet ./...
-      - run: go tool staticcheck ./...
-      - name: Unit tests
-        run: go test -timeout 120s -count=1 ./...
-      - name: Linux race tests
-        run: go test -race -timeout 120s -count=1 ./...
-      - name: Replay integration, not native FreeBSD telemetry
-        run: go test -tags=integration -timeout 120s -count=1 ./tests/integration/...
-      - name: Original and dependency license notices
-        run: go run ./tools/dev license
-      - run: go run ./tools/dev build
+      - name: Select the pinned toolchain and repository-local scratch
+        run: |
+          mkdir -p .tools/tmp
+          echo "TMPDIR=${GITHUB_WORKSPACE}/.tools/tmp" >> "${GITHUB_ENV}"
+          rustup toolchain install 1.99.1 --profile minimal --component clippy --component rustfmt --component rust-docs
+      - run: cargo fetch --locked
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Unit tests (including trusted/untrusted local TLS)
+        run: make test-unit
+      - name: Replay, bounded cancellation, and subprocess CLI compatibility (not native collection)
+        run: make test-integration test-concurrency
+      - run: cargo test --locked --doc --all-features
+      - name: Original and locked runtime dependency notices
+        run: make license
+      - run: make build
 
   protobuf:
-    name: Reproducible protobuf generation
+    name: Reproducible Rust protobuf and JSON generation
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # v6
-        with:
-          go-version-file: go.mod
-          cache: true
+      - run: |
+          mkdir -p .tools/protoc .tools/tmp
+          echo "TMPDIR=${GITHUB_WORKSPACE}/.tools/tmp" >> "${GITHUB_ENV}"
+          rustup toolchain install 1.99.1 --profile minimal
       - name: Install checksum-verified protoc 36.2 without elevation
         shell: bash
         run: |
           set -euo pipefail
-          directory="$(mktemp -d "${RUNNER_TEMP}/buoybsd-protoc.XXXXXX")"
+          directory="${GITHUB_WORKSPACE}/.tools/protoc"
           curl --fail --location --connect-timeout 15 --max-time 120 \
             https://github.com/protocolbuffers/protobuf/releases/download/v36.2/protoc-36.2-linux-x86_64.zip \
             --output "${directory}/protoc.zip"
@@ -69,18 +67,48 @@ jobs:
             "${directory}/protoc.zip" | sha256sum --check -
           unzip -q "${directory}/protoc.zip" -d "${directory}"
           echo "${directory}/bin" >> "${GITHUB_PATH}"
-      - run: go run ./tools/dev check-generated
+      - run: make check-generated
 
   freebsd-compile:
-    name: FreeBSD compilation only (amd64 and arm64)
+    name: FreeBSD 15.1 compilation only (${{ matrix.arch }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            target: x86_64-unknown-freebsd
+            sha256: bc544b80102cd9dc0bdd4fffefab9cfac18f5a56a992a5764ba5e24a5478066e
+          - arch: aarch64
+            target: aarch64-unknown-freebsd
+            sha256: 648977bd217bf8f2896905488bcef32e5264b582a6ec33132cfc99a5ff92117f
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # v6
+      - name: Compile with target-native linker and OpenSSL (no telemetry or privileged tests)
+        uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc  # v1
         with:
-          go-version-file: go.mod
-          cache: true
-      - run: go run ./tools/dev build-freebsd
+          release: "15.1"
+          arch: ${{ matrix.arch }}
+          copyback: false
+          # The pinned action excludes "_actions" directories from workspace rsync.
+          data-dir: ${{ github.workspace }}/.tools/_actions/vm-data
+          cache-dir: ${{ github.workspace }}/.tools/_actions/vm-cache
+          prepare: pkg install -y curl ca_root_nss pkgconf
+          run: |
+            set -eu
+            mkdir -p .tools/tmp
+            export TMPDIR="$PWD/.tools/tmp"
+            archive="rust-1.99.1-${{ matrix.target }}"
+            curl --fail --location --connect-timeout 15 --max-time 300 \
+              "https://static.rust-lang.org/dist/${archive}.tar.xz" --output .tools/rust.tar.xz
+            test "$(sha256 -q .tools/rust.tar.xz)" = "${{ matrix.sha256 }}"
+            tar -xf .tools/rust.tar.xz -C .tools
+            ".tools/${archive}/install.sh" --prefix="$PWD/.tools/rust" \
+              --components="rustc,rust-std-${{ matrix.target }},cargo" --disable-ldconfig
+            export PATH="$PWD/.tools/rust/bin:$PATH"
+            export OPENSSL_DIR=/usr
+            rustc --version
+            cargo build --locked --bin buoybsd --bin buoyctl

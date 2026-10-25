@@ -36,7 +36,8 @@ privileged acquisition from ordinary processing where practical.
   Windows access is governed by ACLs. No automatic rotation is provided.
 - Configuration/replay files cannot also be file destinations, including
   aliases resolved to the same existing file.
-- Webhooks verify TLS using Go's system trust, do not follow redirects,
+- Webhooks use Reqwest/native TLS with the system trust store (SChannel
+  on Windows, OpenSSL on FreeBSD/Linux), do not follow redirects,
   reject URL userinfo/fragments, and never echo secret-bearing URLs or
   headers in errors. HTTP requires explicit opt-in and a loopback host.
 - Retries are finite (0-5) and only for network failures, HTTP 429, or

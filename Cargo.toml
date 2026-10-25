@@ -1,0 +1,54 @@
+[package]
+name = "buoybsd"
+version = "0.1.0-dev"
+edition = "2024"
+rust-version = "1.99.1"
+license = "Apache-2.0"
+description = "Experimental FreeBSD runtime-security replay prototype; not a live sensor"
+repository = "https://github.com/blackoutsecure/int-buoybsd"
+default-run = "buoybsd"
+
+[features]
+tooling = ["dep:prost-build", "dep:pbjson-build"]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.5", features = ["derive"] }
+pbjson = "=0.9.0"
+prost = "=0.14.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = { package = "serde_yaml_ng", version = "0.10" }
+reqwest = { version = "0.12", default-features = false, features = ["native-tls", "http2"] }
+same-file = "1"
+sha2 = "0.10"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal", "fs", "io-util", "net"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }
+prost-build = { version = "=0.14.4", optional = true }
+pbjson-build = { version = "=0.9.0", optional = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation"] }
+
+[dev-dependencies]
+native-tls = "0.2"
+tokio-native-tls = "0.3"
+
+[[bin]]
+name = "buoybsd"
+path = "src/bin/buoybsd.rs"
+
+[[bin]]
+name = "buoyctl"
+path = "src/bin/buoyctl.rs"
+
+[[bin]]
+name = "buoy-dev"
+path = "src/bin/buoy-dev.rs"
+required-features = ["tooling"]

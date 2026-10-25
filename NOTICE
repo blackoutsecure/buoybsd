@@ -8,7 +8,8 @@ architectural and interoperability reference. No endorsement,
 affiliation, or demonstrated Tracee wire compatibility is implied.
 No Tracee implementation code is included in this bootstrap.
 
-Runtime dependency and Go standard-library license notices are preserved
-in licenses/protobuf.txt, licenses/yaml.txt, and licenses/go.txt.
+Runtime dependency and Rust standard-library license notices are preserved
+in licenses/dependencies/, licenses/rust/, and licenses/runtime-index.json.
 Include this NOTICE, LICENSE, and the licenses directory with binary
-distributions. See docs/provenance.md for versions and source references.
+distributions, together with any additional notices required by the actual
+target-system libraries. See docs/provenance.md for versions and sources.

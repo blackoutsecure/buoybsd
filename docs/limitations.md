@@ -23,15 +23,15 @@
   be significant; tune both, not just one.
 - UID/GID selectors use real IDs. Network/severity selectors, templates,
   Forward, gRPC, Rego, and multiple streams are deferred.
-- Windows race validation was attempted but blocked by ThreadSanitizer
-  shadow-memory allocation error 87 before tests executed. The Linux
-  CI race gate is configured but has not run against this unpublished
-  bootstrap. Ordinary local tests are not a substitute for that gate.
+- Stable Rust saturation/cancellation tests are not a sanitizer run;
+  no ThreadSanitizer result is claimed. FreeBSD compilation CI is
+  configured but has not been executed against this unpublished
+  migration. Windows replay tests do not establish FreeBSD support.
 
 ## Replay bootstrap gate
 
 The bootstrap must provide the architecture/feasibility documents,
-compatibility matrix, limitations, proposed protobuf, Go skeleton,
+compatibility matrix, limitations, preserved protobuf, Rust runtime,
 synthetic replay collector, JSON output and tested replay-to-JSON path.
 It additionally exercises policy, detector, table/file/webhook,
 cancellation, bounded buffering, configuration, and diagnostics.

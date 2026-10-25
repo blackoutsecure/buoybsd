@@ -2,9 +2,11 @@
 
 ## Original implementation
 
-BuoyBSD's Go code, protobuf schema, configuration, documentation, and
+BuoyBSD's Rust code, protobuf schema, configuration, documentation, and
 synthetic replay envelopes are independently implemented for this
-project under Apache-2.0. No Tracee source code, eBPF/C programs,
+project under Apache-2.0. The Rust implementation ports the project's
+own former Go replay prototype; no Go production code or fallback is
+retained. No Tracee source code, eBPF/C programs,
 signatures, generated API files, or native FreeBSD telemetry captures
 were copied into this bootstrap.
 
@@ -39,32 +41,70 @@ status, preserved copyright, meaningful changes, and semantic tests.
 
 ## Dependencies and generation
 
-- `google.golang.org/protobuf` **v1.36.12**, BSD-3-Clause, runtime and
-  `protoc-gen-go`; preserve its notice in
-  [`licenses/protobuf.txt`](../licenses/protobuf.txt).
-- `go.yaml.in/yaml/v3` **v3.0.5**, Apache-2.0 and MIT file-specific
-  terms; preserve the complete dual-license notice in
-  [`licenses/yaml.txt`](../licenses/yaml.txt).
-- `honnef.co/go/tools` **v0.8.2**, MIT, development-only static analysis.
-  Its tooling dependencies are pinned in `go.mod`/`go.sum`, not linked
-  into BuoyBSD executables.
-- Go **1.27.2** is the selected toolchain. Distributed Go binaries also
-  include Go standard-library/runtime code under Go's BSD-style license;
-  preserve [`licenses/go.txt`](../licenses/go.txt) in binary bundles.
-- `protoc` **36.2** is an external development tool, not shipped with
-  the sensor. Obtain official archives and verify their SHA-256.
+Rust **1.99.1** is pinned in `rust-toolchain.toml`. `Cargo.lock` records
+exact crate versions and registry checksums; ordinary builds use
+`--locked`. Domain code uses the Rust standard library and narrow
+Serde/thiserror support, not Tokio, Reqwest, protobuf, OS acquisition,
+HTTP servers, or database implementations.
 
-Run `make generate` (or `go run ./tools/dev generate`) from the
-repository root. The helper checks the protoc version, builds the Go
-generator from the pinned module, and uses source-relative paths.
-`make check-generated` regenerates into a temporary directory and
-compares bytes without modifying tracked output.
+Principal adapters use Prost **0.14.4** (Apache-2.0), pbjson **0.9.0**
+(MIT), Serde/serde_json (MIT OR Apache-2.0), serde_yaml_ng (MIT OR
+Apache-2.0), Clap (MIT OR Apache-2.0), Tokio/tokio-util (MIT), Reqwest
+(MIT OR Apache-2.0), native-tls (MIT OR Apache-2.0), SHA-2 (MIT OR
+Apache-2.0), and Tracing (MIT). Consult
+[`licenses/runtime-index.json`](../licenses/runtime-index.json) for
+the exact, target-inclusive runtime dependency closure, source
+locations, SPDX expressions, and SHA-256 of each preserved notice.
+The generated index, not this overview, is the version inventory.
+pbjson 0.9 omits its workspace-root LICENSE from the crate archive.
+`licenses/upstream-sources.json` preserves the full MIT text verified
+against its packaged VCS commit and the exact upstream file digest;
+the notice checker verifies both before including it. This is not an
+assumed generic MIT substitution or an unpinned network download.
+Packaged AUTHORS attribution files are retained as well; r-efi's
+AUTHORS file contains its actual triple-license grant and copyright.
 
-`go run ./tools/dev notices` refreshes runtime dependency/Go license
-snapshots from the verified module cache and selected GOROOT.
-`make license` checks those snapshots against the selected dependencies,
-the root license/NOTICE, and SPDX headers on authored Go/proto sources.
-Dependency updates must refresh and review these notices.
+Prost-build **0.14.4** and pbjson-build **0.9.0** are feature-gated
+developer dependencies, not sensor runtime dependencies. `protoc`
+**36.2** is an external development executable, not shipped with the
+sensor. Obtain official archives and verify their SHA-256.
+
+Run `make generate` (or
+`cargo run --locked --features tooling --bin buoy-dev -- generate`).
+The helper checks the protoc version and generates the two Rust
+bindings beside the unchanged `event.proto`. It deterministically
+removes pbjson 0.9's redundant `&FIELDS` formatting borrow so strict
+Rust 1.99 Clippy remains enabled; it does not suppress that check.
+`make check-generated` regenerates under `.tools/protobuf-check` and
+compares bytes without replacing tracked output.
+
+The timestamp adapter implements protobuf's canonical UTC `Z` and
+0/3/6/9 fractional-digit representation rather than delegating to a
+generic date serializer. Numbers, scalar presence, oneof tags, raw
+bytes, enum names, and 64-bit JSON strings retain the existing
+contract. The schema's historical `go_package` option remains inert
+metadata for existing schema consumers, not a Go build dependency.
+
+`make notices` refreshes source-license snapshots from Cargo's
+checksum-verified cache and the selected Rust toolchain's
+`COPYRIGHT-library.html`/license texts (the `rust-docs` component).
+`make license` checks exact bytes, stale snapshots, root attribution,
+and SPDX headers on authored Rust/protobuf sources. The dependency
+closure follows normal dependencies across target conditions;
+development/build-only tools are not represented as runtime code.
+Review file-specific and target-system licensing before distributing
+binaries, including OpenSSL or GNU runtime components as applicable.
 
 Binary distributions must include LICENSE, NOTICE, and the `licenses`
-directory. This bootstrap does not publish release archives.
+directory, plus any additional target-system notices required by the
+actual linked libraries. This prototype publishes no release archives.
+
+## Migration evidence
+
+The schema and original synthetic replay input are unchanged.
+Meaningful replay, normalization, policy, detector, output, webhook,
+configuration, pipeline, CLI, and integration regressions were ported.
+The added subprocess JSON golden records the former executable's
+synthetic output; see [fixture provenance](../tests/fixtures/README.md).
+No saved output or cross-platform compilation upgrades a Tracee
+mapping's status or certifies native FreeBSD collection.

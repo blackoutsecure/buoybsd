@@ -23,14 +23,15 @@ or the FreeBSD Project.
 
 Implemented:
 
-- Go daemon/control-client entry points.
+- Rust daemon/control-client entry points using Clap.
 - A versioned, independently designed `buoybsd.v1beta1` protobuf API.
 - Bounded, strict replay input for a process-execution vertical slice.
 - Normalization with field presence, original record preservation,
   source attribution, and incomplete-data warnings.
-- Exact/glob policies and an informational native Go shell detector.
+- Exact/glob policies and an informational pure-Rust shell detector.
 - Protobuf JSON to stdout/files, escaped tables, and bounded webhooks.
-- Unit tests, replay integration tests, and FreeBSD cross-build checks.
+- Unit, replay, subprocess CLI, and concurrency regressions; configured
+  FreeBSD amd64/arm64 compilation checks.
 
 **No production auditpipe or DTrace collector exists yet.** Supplied
 fixtures are synthetic replay-contract examples, not captured FreeBSD
@@ -42,15 +43,16 @@ and installed commands are named BuoyBSD, `buoybsd`, and `buoyctl`.
 
 ## Quick start
 
-Install Go **1.27.2**. Ordinary builds do not require C, cgo, or protobuf
-tools. From the repository root:
+Install Rust **1.99.1**, a platform linker, and the Unix OpenSSL
+development libraries where applicable. Ordinary builds do not need
+Go or protobuf tools. From the repository root:
 
 ```sh
-go build -o bin/ ./cmd/...
-go run ./cmd/buoybsd --config configs/buoybsd.example.yaml
-go run ./cmd/buoybsd --replay tests/fixtures/process_exec.synthetic.ndjson --output table
-go run ./cmd/buoyctl events list
-go test ./...
+cargo build --locked --bin buoybsd --bin buoyctl
+cargo run --locked --bin buoybsd -- --config configs/buoybsd.example.yaml
+cargo run --locked --bin buoybsd -- --replay tests/fixtures/process_exec.synthetic.ndjson --output table
+cargo run --locked --bin buoyctl -- events list
+cargo test --locked --all-targets --all-features
 ```
 
 Event output goes to stdout; structured diagnostic logs and final
@@ -65,17 +67,22 @@ make build
 make test
 make test-unit
 make test-integration
+make test-concurrency
 make lint
 make fmt
 make generate
 make check-generated
+make notices
+make license
 make build-freebsd
 make clean
 ```
 
-`make generate` requires **protoc 36.2**. The Go generator and static
-analyzer are pinned in the Go module. On Windows without Make, the
-equivalent Go commands are in [CONTRIBUTING.md](CONTRIBUTING.md).
+Executables are written to `target/debug` (`.exe` on Windows).
+`make generate` requires **protoc 36.2**; Prost and protobuf-JSON
+generators are pinned in Cargo. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for direct commands, Windows GNU linking, TLS-test prerequisites, and
+FreeBSD build prerequisites. No live FreeBSD runtime is certified.
 
 ## Configuration and safety
 

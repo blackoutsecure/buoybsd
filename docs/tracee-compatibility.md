@@ -30,10 +30,10 @@ No implemented native event currently earns that status.
 | Executable, command, argv | Optional fields and explicit completeness | Cached DTrace strings will not be split into a fabricated argv vector |
 | Jail | Optional ID/name | Not a Tracee container or namespace |
 | Raw bytes/source/sequence/warnings | Exact replay envelope and local ordering | BuoyBSD-specific provenance; not native telemetry |
-| Policy/detection metadata | Tested local policy and Go detector | Conceptual alignment, not Tracee signature compatibility |
+| Policy/detection metadata | Tested local policy and Rust detector | Conceptual alignment, not Tracee signature compatibility |
 
 Replay-to-JSON integration is in
-[`tests/integration/replay_test.go`](../tests/integration/replay_test.go).
+[`tests/integration.rs`](../tests/integration.rs).
 It validates BuoyBSD's own contract, **not** native acquisition or
 Tracee deserialization.
 
@@ -46,7 +46,7 @@ package names, field numbers, event IDs, and JSON shapes differ.
 
 Tracee's event uses policies, workload, event values, threat, and
 detected-from messages. BuoyBSD deliberately keeps a smaller native
-contract. Go templates, Forward and gRPC are not implemented.
+contract. Templates, Forward and gRPC are not implemented.
 
 Before marking any mapping equivalent, add a real capture, supported
 release/privilege statement, exact field mapping, explicit missing and

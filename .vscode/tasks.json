@@ -4,24 +4,24 @@
     {
       "label": "BuoyBSD: build",
       "type": "shell",
-      "command": "go",
-      "args": ["run", "./tools/dev", "build"],
+      "command": "cargo",
+      "args": ["build", "--locked", "--bin", "buoybsd", "--bin", "buoyctl"],
       "options": {"cwd": "${workspaceFolder}"},
       "isBackground": false,
       "group": {"kind": "build", "isDefault": true},
       "presentation": {"reveal": "always", "panel": "dedicated", "clear": false},
-      "problemMatcher": ["$go"]
+      "problemMatcher": ["$rustc"]
     },
     {
       "label": "BuoyBSD: test",
       "type": "shell",
-      "command": "go",
-      "args": ["test", "-timeout", "120s", "./..."],
+      "command": "cargo",
+      "args": ["test", "--locked", "--all-targets", "--all-features"],
       "options": {"cwd": "${workspaceFolder}"},
       "isBackground": false,
       "group": {"kind": "test", "isDefault": true},
       "presentation": {"reveal": "always", "panel": "dedicated", "clear": false},
-      "problemMatcher": ["$go"]
+      "problemMatcher": ["$rustc"]
     }
   ]
 }

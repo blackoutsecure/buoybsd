@@ -3,10 +3,15 @@
 ## Identity and scope
 
 BuoyBSD is an independent experimental FreeBSD runtime-security,
-observability, and forensics project. The existing repository is
-`blackoutsecure/int-buoybsd`; commands are `buoybsd` and `buoyctl`.
+observability, and forensics project. The source repository is
+`blackoutsecure/buoybsd`; commands are `buoybsd` and `buoyctl`.
 Never claim affiliation with Aqua Security, Tracee, or the FreeBSD
 Project, or compatibility unsupported by tests and semantic review.
+
+Keep the public Go module/import path
+`github.com/blackoutsecure/int-buoybsd` unchanged; a source-repository
+rename is not permission to migrate the module. See
+[the README](../README.md) for the compatibility boundary.
 
 Use [the architecture](../docs/architecture.md) and
 [completion gates](../docs/limitations.md) as the scope contract.

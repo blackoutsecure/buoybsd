@@ -37,8 +37,16 @@ fixtures are synthetic replay-contract examples, not captured FreeBSD
 telemetry. No event is certified Tracee-equivalent. Passing a cross-build
 does not establish FreeBSD runtime support.
 
-The GitHub repository remains `blackoutsecure/int-buoybsd`; the project
-and installed commands are named BuoyBSD, `buoybsd`, and `buoyctl`.
+The source repository is
+[blackoutsecure/buoybsd](https://github.com/blackoutsecure/buoybsd).
+The project and installed commands remain BuoyBSD, `buoybsd`, and `buoyctl`.
+
+The public Go module and import path deliberately remain
+`github.com/blackoutsecure/int-buoybsd`. Use that path for imports and
+versioned `go install` commands; the source-repository rename is not a
+module-path migration. Existing Git access through the old repository
+URL is retained. Do not recreate the retired GitHub slug or change
+module/import identities without a separately reviewed compatibility plan.
 
 ## Quick start
 
